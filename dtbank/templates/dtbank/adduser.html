@@ -1,0 +1,15 @@
+{% extends "dtbank/base.html" %}
+{% block content %}
+<div class="row">
+      <div class="col-sm-1">
+      <form method="post" action="">
+      	{% csrf_token %}
+          <p>username: <input type="text" name="name"/> </p>
+          <p>institution name: <input type="text" name="name"/> </p>
+          <p>password: <input type="text" name="name"/> </p>
+        </div>
+    </div>
+        <button type="submit" class="btn btn-primary">add</button>
+    </form>
+
+{% endblock content %}

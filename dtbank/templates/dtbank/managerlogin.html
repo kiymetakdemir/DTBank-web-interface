@@ -1,12 +1,12 @@
 {% extends "dtbank/base.html" %}
 {% block content %}
-<h2>User Login</h2>
+<h2>Database Manager Login</h2>
 {% if message%}
 {{message}}
 {% endif %}
 <div class="row">
   <div class="col-sm-1">
-  <form method="post" action="/userdirect/">
+  <form method="post" action="/managerdirect/">
   	{% csrf_token %}
       <p>username: <input type="text" name="username"/> </p>
       <p>password: <input type="password" name="password"/> </p>
@@ -16,7 +16,7 @@
   </form>
     <div class="border-top pt-3">
 	<small class="text-muted">
-		<a href="/managerloginpage/">Login as a database manager </a>
+		<a href="/login/">Login as a user </a>
 	</small>
     </div>
 {% endblock content %}
