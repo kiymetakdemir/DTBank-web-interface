@@ -7,14 +7,14 @@ from django.db import connection
 # Create your views here.
 
 def home(request):
-	return render(request, 'dtbank/home.html', {'title': 'Home'})
+	return render(request, 'home.html', {'title': 'Home'})
 
 
 def userloginpage(request):
-	return render(request, 'dtbank/userlogin.html')
+	return render(request, 'login.html')
 
 def managerloginpage(request):
-	return render(request, 'dtbank/managerlogin.html')
+	return render(request, 'managerlogin.html')
 
 def login(request):
 	username = request.POST.get('username')	#check if username exists in database
@@ -22,9 +22,9 @@ def login(request):
 	password = request.POST.get('password')
 	#if hasher.check_password(password, encoded): #check database manager - password
 	if hasher.check_password(password, encoded):
-		return render(request, 'dtbank/userhome.html', {'username':username})
+		return render(request, 'userhome.html', {'username':username})
 	else:
-		return render(request, 'dtbank/login.html', {'message': "Invalid username or password!"})
+		return render(request, 'login.html', {'message': "Invalid username or password!"})
 
 def managerlogin(request):
 	username = request.POST.get('username')	#check if username exists in database
@@ -32,15 +32,15 @@ def managerlogin(request):
 	password = request.POST.get('password')
 	#if hasher.check_password(password, encoded): #check database manager - password
 	if hasher.check_password(password, encoded):
-		return render(request, 'dtbank/managerhome.html', {'username':username})
+		return render(request, 'managerhome.html', {'username':username})
 	else:
-		return render(request, 'dtbank/managerlogin.html', {'message': "Invalid username or password!"})
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
 
 def userhome(request, username):
-	return render(request, 'dtbank/userhome.html', {'username':username})
+	return render(request, 'userhome.html', {'username':username})
 
 def managerhome(request, username):
-	return render(request, 'dtbank/managerhome.html', {'username':username})
+	return render(request, 'managerhome.html', {'username':username})
 
 
 """def adduser(request):
@@ -59,3 +59,8 @@ def managerhome(request, username):
 	cursor.execute("select name from demo")
 	names = cursor.fetchall()
 	return render(request, 'dtbank/home.html', {'names':names})"""
+
+
+
+
+

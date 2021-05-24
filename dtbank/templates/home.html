@@ -1,5 +1,8 @@
-{% extends "dtbank/base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <h1> Home </h1>
+{% for name in names%}
+{{name}}
+{% endfor %}
 <a href='login/'> Login </a>
 {% endblock content %}
