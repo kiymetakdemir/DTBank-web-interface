@@ -2,11 +2,12 @@
 {% block content %}
 <div class="row">
       <div class="col-sm-1">
-      <form method="post" action="">
+      <form method="post" action="/saveuser/">
       	{% csrf_token %}
-          <p>username: <input type="text" name="name"/> </p>
-          <p>institution name: <input type="text" name="name"/> </p>
-          <p>password: <input type="text" name="name"/> </p>
+          <p>name: <input type="text" name="name"/> </p>
+          <p>username: <input type="text" name="username"/> </p>
+          <p>institution name: <input type="text" name="institution"/> </p>
+          <p>password: <input type="text" name="password"/> </p>
         </div>
     </div>
         <button type="submit" class="btn btn-primary">add</button>

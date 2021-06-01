@@ -1,1 +1,8 @@
-Welcome {{username}}!
+{% if message%}
+{{message}}
+{% endif %}
+<br>
+<br>
+<a href="/adduser/"> Add a new user</a>
+<br>
+<a href="/login/"> Logout</a>
