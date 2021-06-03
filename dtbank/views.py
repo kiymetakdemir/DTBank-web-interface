@@ -7,7 +7,63 @@ from django.db import connection
 from django.conf.urls import url
 from rest_framework_swagger.views import get_swagger_view
 
-# Create your views here.
+
+cursor = connection.cursor()
+#
+#	*** User Operations
+#
+def viewDrugInfo(request):
+	cursor.execute("select drugbank_id, drug_name, smiles, description from Drug")
+	drugs = cursor.fetchall()
+
+	cursor.execute("select D.drugbank_id, D.drug_name,D.smiles, D.description, U.target_name  from Drug D, Reaction_Related R, UniProt U where D.drugbank_id=R.drugbank_id and R.uniprot_id=U.uniprot_id")
+	targets = cursor.fetchall()
+	cursor.execute("select D.drugbank_id, D.drug_name,D.smiles, D.description, S.side_effect_name  from Drug D, Sider_Has S where D.drugbank_id=S.drugbank_id")
+	sides = cursor.fetchall()
+	
+	columns = ["Drugbank ID", "Drug Name", "Smiles", "Description", "Target Name", "Side Effect Name"]
+
+	dct = {drug:[[],[]] for drug in drugs}
+
+	for tpl in targets:
+		dct[(tpl[0],tpl[1], tpl[2], tpl[3])][0].append(tpl[4])
+
+	for tpl in sides:
+		dct[(tpl[0],tpl[1], tpl[2], tpl[3])][1].append(tpl[4])
+
+	tuples = [(k[0],k[1], k[2], k[3], v[0], v[1]) for k,v in dct.items()]
+
+	return render(request, "viewtable.html", {'tuples':tuples, 'columns':columns})
+
+
+def viewdruginteractions(request):
+	drugbank_id = request.POST.get('id')
+	cursor.execute("select drugbank_id_2 from Interaction_with where drugbank_id_1 = '"+drugbank_id+"'")
+	ts = cursor.fetchall()
+	interactions = [t[0] for t in ts]
+	names = []
+	for drug in interactions:
+		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+
+	tuples = []
+	for i in range(len(interactions)):
+		tuples.append((interactions[i],names[i]))
+
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Drug id", "Drug name"]})
+
+def viewSideEffects(request):
+	drugbank_id = request.POST.get('id')
+	cursor.execute("select side_effect_name, umls_cui from Sider_Has where drugbank_id = '"+drugbank_id+"'")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
+
+
+#
+#   *** GENERAL
+#
 
 def home(request):
 	return redirect('login')
@@ -23,7 +79,6 @@ def login(request):
 	institution = request.POST.get('institution')
 	password = request.POST.get('password')
 
-	cursor = connection.cursor()
 	query = "select password from User_Work where username='"+username+"' and institution_name='"+institution+"'"
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
@@ -41,7 +96,6 @@ def managerlogin(request):
 	username = request.POST.get('username')	#check if username exists in database
 	password = request.POST.get('password')
 	#if hasher.check_password(password, encoded): #check database manager - password
-	cursor = connection.cursor()
 	query = "select password from Database_Manager where username='"+username+"'"
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
@@ -56,22 +110,20 @@ def managerlogin(request):
 		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
 
 def userhome(request, username):
-	return render(request, 'userhome.html', {'message':'Welcome '+username+"!"})
+	return render(request, 'userhome.html')
 
-def managerhome(request, username):
-	return render(request, 'managerhome.html', {'message':'Welcome '+username+"!"})
+def managerhome(request):
+	return render(request, 'managerhome.html')
 
-def createtables(request):
-	with connection.cursor() as c:
-    		c.execute("CREATE TABLE User ( password	CHAR(30), username	CHAR(20) NOT NULL, institution CHAR(100), PRIMARY KEY(username,institution))")
-
+#
+#	*** Database Manager operations
+#
 def saveuser(request):
 	username = request.POST.get('username')
 	name = request.POST.get('name')
 	institution = request.POST.get('institution')
 	password = request.POST.get('password')
 	encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database
-	cursor = connection.cursor()
 	insertion = "insert into User_Work values ('"+encoded+"','"+name+"','"+username+"','"+institution+"')"
 	cursor.execute(insertion)
 	return render(request,'managerhome.html', {'message':"User saved successfully!"})
@@ -79,7 +131,6 @@ def saveuser(request):
 def update_affinity(request):
 	reaction_id = request.POST.get('id')
 	newvalue = request.POST.get('affinity')
-	cursor = connection.cursor()
 	cursor.execute("select * from Reaction_Related where reaction_id='"+reaction_id+"'")
 	temp = cursor.fetchall()
 	if len(temp)==0:
@@ -91,7 +142,6 @@ def update_affinity(request):
 
 def delete_drug(request):
 	drugbank_id = request.POST.get('id')
-	cursor = connection.cursor()
 	cursor.execute("select * from Drug where drugbank_id= '"+drugbank_id+"'")
 	temp = cursor.fetchall()
 	if len(temp)==0:
@@ -104,7 +154,6 @@ def delete_drug(request):
 
 def delete_protein(request):
 	uniprot_id = request.POST.get('id')
-	cursor = connection.cursor()
 	cursor.execute("select * from UniProt where uniprot_id= '"+uniprot_id+"'")
 	temp = cursor.fetchall()
 	if len(temp)==0:
@@ -114,37 +163,107 @@ def delete_protein(request):
 		cursor.execute(deletion)
 		return render(request,'managerhome.html', {'message':"Protein deleted successfully!"})
 
-def updateContributors(request):
-	reaction_id = request.POST.get("reaction_id")
-	cursor = connection.cursor()
-	cursor.execute("select * from Reaction_Related where reaction_id= '"+reaction_id+"'")
-	temp = cursor.fetchall()
-	if len(temp)==0:
-		return render(request, 'managerhome.html', {'message':"There is no reaction with the given id. Please try again."})
-	else:
-		return render(request, 'managerhome.html', {'message':"I will implement this part later."})
-
 def viewtable(request, tablename):
-	cursor = connection.cursor()
 	query = "select * from "+tablename
 	cursor.execute(query)
 	tuples = cursor.fetchall()
 	cursor.execute("select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME= N'"+tablename+"'")
 	columns = cursor.fetchall()
-	columns = list(columns)
-	if tablename=="Article_Author_of":		#changed username column name as first author
-		columns[2]=('first author',)
+	columns = [col for (col,) in columns]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
 def viewusers(request):		#wrote a new function to not to get passwords
-	cursor = connection.cursor()
 	cursor.execute("select name, username, institution_name from User_Work")
 	tuples = cursor.fetchall()
-	columns = [("name",), ("username",), ("institution",)]
+	columns = ["name", "username", "institution"]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
+def viewpapers(request):
+	cursor.execute("select T1.doi, T1.institution_name, T3.name from Article_Institution T1, Article_Author T2, User_Work T3 where T1.doi = T2.doi and T2.username=T3.username and T1.institution_name=T3.institution_name")
+	tuples = cursor.fetchall()
+	columns = ["doi", "institution", "authors"]
+	articles = []
+	for tpl in tuples:
+		if (tpl[0],tpl[1]) not in articles:
+			articles.append((tpl[0],tpl[1]))
+
+	dct = {article:[] for article in articles}
+
+	for tpl in tuples:
+		dct[(tpl[0],tpl[1])].append(tpl[2])
+
+	tuples = [(k[0],k[1],v) for k,v in dct.items()]
+
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+
+def updateContributors(request):
+	reaction_id = request.POST.get("reaction_id")
+	cursor.execute("select doi from Reaction_Related where reaction_id= '"+reaction_id+"'")
+	doi = cursor.fetchall()
+	if len(doi)==0:
+		return render(request, 'managerhome.html', {'message':"There is no reaction with the given id. Please try again."})
+	else:
+		doi=doi[0][0]
+		cursor.execute("select username from Article_Author where doi='"+doi+"'")
+		authors = cursor.fetchall()
+		cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+		institution = cursor.fetchall()[0][0]
+		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution})
+
+def addauthors(request, doi, reaction_id):
+	username = request.POST.get('username')
+	name = request.POST.get('name')
+	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+	institution = cursor.fetchall()[0][0]
+	password = request.POST.get('password')
+	encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database 
+	cursor.execute("insert into User_Work values ('"+encoded+"','"+name+"','"+username+"','"+institution+"')")
+	cursor.execute("insert into Article_Author values ('"+doi+"','"+username+"')")
+	cursor.execute("select username from Article_Author where doi='"+doi+"'")
+	authors = cursor.fetchall()
+	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+	institution = cursor.fetchall()[0][0]
+	return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author added successfully!"})
+
+def addUserAsAuthor(request, doi, reaction_id):
+	username = request.POST.get('username')
+
+	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+	institution = cursor.fetchall()[0][0]
+
+	cursor.execute("select username from Article_Author where doi='"+doi+"'")
+	authors = cursor.fetchall()
+
+	cursor.execute("select * from User_Work where institution_name='"+institution+"' and username='"+username+"'")
+	check = cursor.fetchall()
+
+	if len(check)>0:
+		insertion = "insert into Article_Author values ('"+doi+"','"+username+"')"
+		cursor.execute(insertion)
+		cursor.execute("select username from Article_Author where doi='"+doi+"'")
+		authors = cursor.fetchall()
+		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author added successfully!"})
+	else:
+		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"There is no such user. Please add as a new user."})
+
+def removeauthor(request, doi, username, reaction_id):
+	cursor.execute("select username from Article_Author where doi='"+doi+"'")
+	authors = cursor.fetchall()
+	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+	institution = cursor.fetchall()[0][0]
+
+	if len(authors)<=1:
+		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"There should be at least 1 author!"})
+	else:
+		delete = "delete from Article_Author where username= '"+username+"' and doi='"+doi+"'"
+		cursor.execute(delete)
+		cursor.execute("select username from Article_Author where doi='"+doi+"'")
+		authors = cursor.fetchall()
+		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author removed successfully!"})
+
+
 def encrypt_passwords(request):
-	cursor = connection.cursor()			#encode database manager passwords
+			#encode database manager passwords
 	cursor.execute("select username, password from Database_Manager")
 	user_password = cursor.fetchall()
 
@@ -163,8 +282,9 @@ def encrypt_passwords(request):
 
 	return redirect('managerhome')
 
-
-
+#
+#
+#
 
 
 

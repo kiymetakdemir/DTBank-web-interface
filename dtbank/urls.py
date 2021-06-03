@@ -18,7 +18,14 @@ urlpatterns = [
     path('delete_protein/', views.delete_protein),
     path('viewtable/<str:tablename>', views.viewtable),
     path('viewusers/', views.viewusers),
-    path('updatecontributors/', views.updateContributors)
+    path('viewpapers/', views.viewpapers),
+    path('updatecontributors/', views.updateContributors),
+    path('removeauthor/<str:username>/<str:doi>/<str:reaction_id>', views.removeauthor),
+    path('addauthors/<str:doi>/<str:reaction_id>', views.addauthors),
+    path('adduserasauthor/<str:doi>/<str:reaction_id>', views.addUserAsAuthor),
+    path('viewdruginteractions/', views.viewdruginteractions),
+    path('viewsideeffects/', views.viewSideEffects),
+    path('viewdruginfo/', views.viewDrugInfo)
 
 
 ]

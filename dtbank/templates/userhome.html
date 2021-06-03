@@ -1,6 +1,36 @@
 {% if message%}
-{{message}}
+<h2>{{message}}</h2>
 {% endif %}
 <br>
 
+<hr>
+<a href="/viewdruginfo"> View All About Drugs </a>
+<hr>
+<h2>View Interactions</h2>
+<div class="row">
+  <div class="col-sm-1">
+  <form method="post" action="/viewdruginteractions/">
+    {% csrf_token %}
+      <p>DrugBank ID: <input type="text" name="id"/> </p>
+    </div>
+</div>
+    <button type="submit" class="btn btn-primary" value="Update">Click to view</button>
+  </form>
+<hr>
+
+<h2>View Side Effects</h2>
+<div class="row">
+  <div class="col-sm-1">
+  <form method="post" action="/viewsideeffects/">
+    {% csrf_token %}
+      <p>DrugBank ID: <input type="text" name="id"/> </p>
+    </div>
+</div>
+    <button type="submit" class="btn btn-primary" value="Update">Click to view</button>
+  </form>
+<hr>
+<a href="/viewpapers"> View papers </a>
+<hr>
+
 <a href="/login/"> Logout</a>
+<hr>
