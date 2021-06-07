@@ -25,6 +25,9 @@ urlpatterns = [
     path('adduserasauthor/<str:doi>/<str:reaction_id>', views.addUserAsAuthor),
     path('viewdruginteractions/', views.viewdruginteractions),
     path('viewsideeffects/', views.viewSideEffects),
+    path('viewproteininteractings/', views.viewproteininteractings),
+    path('viewdruginteractingtargets/', views.viewdruginteractingtargets),
+    path('sameproteindrugs/', views.sameproteindrugs),
     path('viewdruginfo/', views.viewDrugInfo)
 
 

@@ -60,6 +60,25 @@ def viewSideEffects(request):
 	
 	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
 
+def viewdruginteractingtargets(request):
+	drugbank_id = request.POST.get('id')
+	cursor.execute("select U.target_name from Reaction_Related R, Uniprot U where R.drugbank_id = '"+drugbank_id+"' and R.uniprot_id= U.uniprot_id ")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Targets"]} )
+
+def viewproteininteractings(request):
+	uniprot_id = request.POST.get('id')
+	cursor.execute("select drugbank_id from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs"]} )
+
+def sameproteindrugs(request):
+	cursor.execute("select distinct (R1.drugbank_id ),   R1.uniprot_id  from Reaction_Related R1, Reaction_Related R2  where R1.uniprot_id = R2.uniprot_id")
+	tuples = cursor.fetchall()
+	columns = ["DrugBank ID", " Same Uniprot"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
 #
 #   *** GENERAL
@@ -83,14 +102,14 @@ def login(request):
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
 	if len(encodedtuple)==0:
-		return render(request, 'login.html', {'message': "Invalid username or password!"})
+		return render(request, 'login.html', {'message': "Invalid username or password0!"})
 
 	encoded = encodedtuple[0][0]		#check if there is any value
 
 	if hasher.check_password(password, encoded):	#check database user - password
 		return render(request, 'userhome.html', {'username':username})
 	else:
-		return render(request, 'login.html', {'message': "Invalid username or password!"})
+		return render(request, 'login.html', {'message': "Invalid username or password1!"})
 
 def managerlogin(request):
 	username = request.POST.get('username')	#check if username exists in database
@@ -100,14 +119,14 @@ def managerlogin(request):
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
 	if len(encodedtuple)==0:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password0!"})
 		
 	encoded = encodedtuple[0][0]		#check if there is any value
 
 	if hasher.check_password(password, encoded):
 		return render(request, 'managerhome.html', {'message':'Welcome '+username+"!"})
 	else:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password1!"})
 
 def userhome(request, username):
 	return render(request, 'userhome.html')
