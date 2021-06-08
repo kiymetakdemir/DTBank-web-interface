@@ -148,7 +148,57 @@ def rankinstitutes(request):
 	tuples= cursor.fetchall()
 	
 	columns = ["Institute","Score"]
-	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})		
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+
+def viewdrugsleastside(request):
+	uniprot_id = request.POST.get('id')
+	cursor.execute("select R.drugbank_id, count(S.umls_cui) from Reaction_Related R , Sider_Has S where R.uniprot_id = '"+uniprot_id+"'and R.drugbank_id =S.drugbank_id  group by S.drugbank_id order by count(S.umls_cui) asc")
+	ts = cursor.fetchall()
+	interacting=[]
+	for i in range(len(ts)):
+		interacting.append(ts[i][0])
+		if(ts[i][1]!=ts[i+1][1]):
+			break
+	if(len(interacting)==0):  # if interacting drugs of a protein has not sider
+		
+		cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
+		ts = cursor.fetchall()
+		interacting=[t[0] for t in ts]
+
+			
+	
+	names=[]
+	for drug in interacting:
+		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
+
+def filterdruginteractingtargets(request):
+	
+	drugbank_id = request.POST.get('id')
+	type = request.POST.get('type')
+	min = request.POST.get('min')
+	max = request.POST.get('max')
+	cursor.execute("CALL ProcedureUniprot('"+drugbank_id+"', '"+type+"',"+min+", "+max+" ); ")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for prot in interacting:
+		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
+
 
 #
 #   *** GENERAL
