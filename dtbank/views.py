@@ -9,6 +9,61 @@ from rest_framework_swagger.views import get_swagger_view
 
 
 cursor = connection.cursor()
+
+#
+#   *** GENERAL
+#
+
+def home(request):
+	return redirect('login')
+
+def userloginpage(request):
+	return render(request, 'login.html')
+
+def managerloginpage(request):
+	return render(request, 'managerlogin.html')
+
+def login(request):
+	username = request.POST.get('username')	#check if username exists in database
+	institution = request.POST.get('institution')
+	password = request.POST.get('password')
+
+	query = "select password from User_Work where username='"+username+"' and institution_name='"+institution+"'"
+	cursor.execute(query)
+	encodedtuple = cursor.fetchall()
+	if len(encodedtuple)==0:
+		return render(request, 'login.html', {'message': "Invalid username or password!"})
+
+	encoded = encodedtuple[0][0]		#check if there is any value
+
+	if hasher.check_password(password, encoded):	#check database user - password
+		return render(request, 'userhome.html', {'username':username})
+	else:
+		return render(request, 'login.html', {'message': "Invalid username or password!"})
+
+def managerlogin(request):
+	username = request.POST.get('username')	#check if username exists in database
+	password = request.POST.get('password')
+	#if hasher.check_password(password, encoded): #check database manager - password
+	query = "select password from Database_Manager where username='"+username+"'"
+	cursor.execute(query)
+	encodedtuple = cursor.fetchall()
+	if len(encodedtuple)==0:
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+		
+	encoded = encodedtuple[0][0]		#check if there is any value
+
+	if hasher.check_password(password, encoded):
+		return render(request, 'managerhome.html', {'message':'Welcome '+username+"!"})
+	else:
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+
+def userhome(request, username):
+	return render(request, 'userhome.html')
+
+def managerhome(request):
+	return render(request, 'managerhome.html')
+	
 #
 #	*** User Operations
 #
@@ -199,60 +254,6 @@ def filterdruginteractingtargets(request):
 	
 	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
 
-
-#
-#   *** GENERAL
-#
-
-def home(request):
-	return redirect('login')
-
-def userloginpage(request):
-	return render(request, 'login.html')
-
-def managerloginpage(request):
-	return render(request, 'managerlogin.html')
-
-def login(request):
-	username = request.POST.get('username')	#check if username exists in database
-	institution = request.POST.get('institution')
-	password = request.POST.get('password')
-
-	query = "select password from User_Work where username='"+username+"' and institution_name='"+institution+"'"
-	cursor.execute(query)
-	encodedtuple = cursor.fetchall()
-	if len(encodedtuple)==0:
-		return render(request, 'login.html', {'message': "Invalid username or password0!"})
-
-	encoded = encodedtuple[0][0]		#check if there is any value
-
-	if hasher.check_password(password, encoded):	#check database user - password
-		return render(request, 'userhome.html', {'username':username})
-	else:
-		return render(request, 'login.html', {'message': "Invalid username or password1!"})
-
-def managerlogin(request):
-	username = request.POST.get('username')	#check if username exists in database
-	password = request.POST.get('password')
-	#if hasher.check_password(password, encoded): #check database manager - password
-	query = "select password from Database_Manager where username='"+username+"'"
-	cursor.execute(query)
-	encodedtuple = cursor.fetchall()
-	if len(encodedtuple)==0:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password0!"})
-		
-	encoded = encodedtuple[0][0]		#check if there is any value
-
-	if hasher.check_password(password, encoded):
-		return render(request, 'managerhome.html', {'message':'Welcome '+username+"!"})
-	else:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password1!"})
-
-def userhome(request, username):
-	return render(request, 'userhome.html')
-
-def managerhome(request):
-	return render(request, 'managerhome.html')
 
 #
 #	*** Database Manager operations
