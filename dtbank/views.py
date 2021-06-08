@@ -60,6 +60,145 @@ def viewSideEffects(request):
 	
 	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
 
+def viewdruginteractingtargets(request):
+	drugbank_id = request.POST.get('id')
+	cursor.execute("select uniprot_id from Reaction_Related where drugbank_id = '"+drugbank_id+"' ")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for prot in interacting:
+		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
+
+def viewproteininteractings(request):
+	uniprot_id = request.POST.get('id')
+	cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for drug in interacting:
+		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
+
+def sameproteindrugs(request):
+	cursor.execute("select uniprot_id from Uniprot")
+	prots= cursor.fetchall()
+	keys = []
+	for prot in prots:
+		keys.append(prot[0])
+	dct = {key:[] for key in keys}
+
+	cursor.execute("select distinct(R1.drugbank_id), R1.uniprot_id from Reaction_Related R1, Reaction_Related R2  where R1.uniprot_id = R2.uniprot_id")
+	tuples = cursor.fetchall()
+	
+	for tpl in tuples:
+		
+		dct[tpl[1]].append(tpl[0])
+
+	tuples = [(k,v) for k,v in dct.items()]
+	columns = ["Uniprot ID","Drugs That Affect"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+def samedrugproteins(request):
+	cursor.execute("select drugbank_id from Drug")
+	drugs= cursor.fetchall()
+	keys = []
+	for drug in drugs:
+		keys.append(drug[0])
+	dct = {key:[] for key in keys}
+
+	cursor.execute("select distinct(R1.uniprot_id), R1.drugbank_id from Reaction_Related R1, Reaction_Related R2  where R1.drugbank_id = R2.drugbank_id")
+	tuples = cursor.fetchall()
+	
+	for tpl in tuples:
+		
+		dct[tpl[1]].append(tpl[0])
+
+	tuples = [(k,v) for k,v in dct.items()]
+	columns = ["DrugBank ID","Proteins That Bind"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})	
+
+def viewdrugswithsider(request):
+	umls_cui = request.POST.get('id')
+	cursor.execute("select drugbank_id, side_effect_name from Sider_Has where umls_cui = '"+umls_cui+"'")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Side Effect Name"]} )
+
+def searchandviewdrugs(request):
+	keyword = request.POST.get('id')
+	cursor.execute("select drugbank_id, drug_name, description from Drug where description like CONCAT('%', '"+keyword+"', '%');")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name", "Description"]} )	
+def rankinstitutes(request):
+	cursor.execute("select institution_name, score from Institution order by score desc")
+	tuples= cursor.fetchall()
+	
+	columns = ["Institute","Score"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+
+def viewdrugsleastside(request):
+	uniprot_id = request.POST.get('id')
+	cursor.execute("select R.drugbank_id, count(S.umls_cui) from Reaction_Related R , Sider_Has S where R.uniprot_id = '"+uniprot_id+"'and R.drugbank_id =S.drugbank_id  group by S.drugbank_id order by count(S.umls_cui) asc")
+	ts = cursor.fetchall()
+	interacting=[]
+	for i in range(len(ts)):
+		interacting.append(ts[i][0])
+		if(ts[i][1]!=ts[i+1][1]):
+			break
+	if(len(interacting)==0):  # if interacting drugs of a protein has not sider
+		
+		cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
+		ts = cursor.fetchall()
+		interacting=[t[0] for t in ts]
+
+			
+	
+	names=[]
+	for drug in interacting:
+		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
+
+def filterdruginteractingtargets(request):
+	
+	drugbank_id = request.POST.get('id')
+	type = request.POST.get('type')
+	min = request.POST.get('min')
+	max = request.POST.get('max')
+	cursor.execute("CALL ProcedureUniprot('"+drugbank_id+"', '"+type+"',"+min+", "+max+" ); ")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for prot in interacting:
+		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
+
 
 #
 #   *** GENERAL
@@ -83,14 +222,14 @@ def login(request):
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
 	if len(encodedtuple)==0:
-		return render(request, 'login.html', {'message': "Invalid username or password!"})
+		return render(request, 'login.html', {'message': "Invalid username or password0!"})
 
 	encoded = encodedtuple[0][0]		#check if there is any value
 
 	if hasher.check_password(password, encoded):	#check database user - password
 		return render(request, 'userhome.html', {'username':username})
 	else:
-		return render(request, 'login.html', {'message': "Invalid username or password!"})
+		return render(request, 'login.html', {'message': "Invalid username or password1!"})
 
 def managerlogin(request):
 	username = request.POST.get('username')	#check if username exists in database
@@ -100,14 +239,14 @@ def managerlogin(request):
 	cursor.execute(query)
 	encodedtuple = cursor.fetchall()
 	if len(encodedtuple)==0:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password0!"})
 		
 	encoded = encodedtuple[0][0]		#check if there is any value
 
 	if hasher.check_password(password, encoded):
 		return render(request, 'managerhome.html', {'message':'Welcome '+username+"!"})
 	else:
-		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
+		return render(request, 'managerlogin.html', {'message': "Invalid username or password1!"})
 
 def userhome(request, username):
 	return render(request, 'userhome.html')
