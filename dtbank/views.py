@@ -62,23 +62,93 @@ def viewSideEffects(request):
 
 def viewdruginteractingtargets(request):
 	drugbank_id = request.POST.get('id')
-	cursor.execute("select U.target_name from Reaction_Related R, Uniprot U where R.drugbank_id = '"+drugbank_id+"' and R.uniprot_id= U.uniprot_id ")
-	tuples = cursor.fetchall()
+	cursor.execute("select uniprot_id from Reaction_Related where drugbank_id = '"+drugbank_id+"' ")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for prot in interacting:
+		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Targets"]} )
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
 
 def viewproteininteractings(request):
 	uniprot_id = request.POST.get('id')
-	cursor.execute("select drugbank_id from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
-	tuples = cursor.fetchall()
+	cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
+	ts = cursor.fetchall()
+	interacting=[t[0] for t in ts]
+	names=[]
+	for drug in interacting:
+		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
+		names.append(cursor.fetchall()[0])
+	names = [name[0] for name in names]
+
+	tuples = []
+	for i in range(len(interacting)):
+		tuples.append((interacting[i],names[i]))
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs"]} )
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
 
 def sameproteindrugs(request):
-	cursor.execute("select distinct (R1.drugbank_id ),   R1.uniprot_id  from Reaction_Related R1, Reaction_Related R2  where R1.uniprot_id = R2.uniprot_id")
+	cursor.execute("select uniprot_id from Uniprot")
+	prots= cursor.fetchall()
+	keys = []
+	for prot in prots:
+		keys.append(prot[0])
+	dct = {key:[] for key in keys}
+
+	cursor.execute("select distinct(R1.drugbank_id), R1.uniprot_id from Reaction_Related R1, Reaction_Related R2  where R1.uniprot_id = R2.uniprot_id")
 	tuples = cursor.fetchall()
-	columns = ["DrugBank ID", " Same Uniprot"]
+	
+	for tpl in tuples:
+		
+		dct[tpl[1]].append(tpl[0])
+
+	tuples = [(k,v) for k,v in dct.items()]
+	columns = ["Uniprot ID","Drugs That Affect"]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+def samedrugproteins(request):
+	cursor.execute("select drugbank_id from Drug")
+	drugs= cursor.fetchall()
+	keys = []
+	for drug in drugs:
+		keys.append(drug[0])
+	dct = {key:[] for key in keys}
+
+	cursor.execute("select distinct(R1.uniprot_id), R1.drugbank_id from Reaction_Related R1, Reaction_Related R2  where R1.drugbank_id = R2.drugbank_id")
+	tuples = cursor.fetchall()
+	
+	for tpl in tuples:
+		
+		dct[tpl[1]].append(tpl[0])
+
+	tuples = [(k,v) for k,v in dct.items()]
+	columns = ["DrugBank ID","Proteins That Bind"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})	
+
+def viewdrugswithsider(request):
+	umls_cui = request.POST.get('id')
+	cursor.execute("select drugbank_id, side_effect_name from Sider_Has where umls_cui = '"+umls_cui+"'")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Side Effect Name"]} )
+
+def searchandviewdrugs(request):
+	keyword = request.POST.get('id')
+	cursor.execute("select drugbank_id, drug_name, description from Drug where description like CONCAT('%', '"+keyword+"', '%');")
+	tuples = cursor.fetchall()
+	
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name", "Description"]} )	
+def rankinstitutes(request):
+	cursor.execute("select institution_name, score from Institution order by score desc")
+	tuples= cursor.fetchall()
+	
+	columns = ["Institute","Score"]
+	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})		
 
 #
 #   *** GENERAL

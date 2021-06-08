@@ -27,7 +27,11 @@ urlpatterns = [
     path('viewsideeffects/', views.viewSideEffects),
     path('viewproteininteractings/', views.viewproteininteractings),
     path('viewdruginteractingtargets/', views.viewdruginteractingtargets),
+    path('viewdrugswithsider/', views.viewdrugswithsider),
+    path('searchandviewdrugs/', views.searchandviewdrugs),
     path('sameproteindrugs/', views.sameproteindrugs),
+    path('rankinstitutes/', views.rankinstitutes),
+    path('samedrugproteins/', views.samedrugproteins),
     path('viewdruginfo/', views.viewDrugInfo)
 
 
