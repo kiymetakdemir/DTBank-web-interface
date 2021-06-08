@@ -167,7 +167,7 @@ def viewtable(request, tablename):
 	query = "select * from "+tablename
 	cursor.execute(query)
 	tuples = cursor.fetchall()
-	cursor.execute("select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME= N'"+tablename+"'")
+	cursor.execute("select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dtbank' and TABLE_NAME= N'"+tablename+"'")
 	columns = cursor.fetchall()
 	columns = [col for (col,) in columns]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
@@ -280,7 +280,7 @@ def encrypt_passwords(request):
 		query = "update User_Work set password='"+encoded+"' where username='"+username+"' and institution_name= '"+institution+"'"
 		cursor.execute(query)
 
-	return redirect('managerhome')
+	return redirect('login')
 
 #
 #
