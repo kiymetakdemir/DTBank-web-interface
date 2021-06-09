@@ -187,10 +187,10 @@ def samedrugproteins(request):
 
 def viewdrugswithsider(request):
 	umls_cui = request.POST.get('id')
-	cursor.execute("select drugbank_id, side_effect_name from Sider_Has where umls_cui = '"+umls_cui+"'")
+	cursor.execute("select S.drugbank_id, D.drug_name from Sider_Has S, Drug D where umls_cui = '"+umls_cui+"' and S.drugbank_id=D.drugbank_id ")
 	tuples = cursor.fetchall()
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Side Effect Name"]} )
+	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name"]} )
 
 def searchandviewdrugs(request):
 	keyword = request.POST.get('id')
@@ -211,9 +211,16 @@ def viewdrugsleastside(request):
 	ts = cursor.fetchall()
 	interacting=[]
 	for i in range(len(ts)):
-		interacting.append(ts[i][0])
-		if(ts[i][1]!=ts[i+1][1]):
-			break
+		
+		if(ts[i][1]==ts[0][1]):
+			interacting.append(ts[i][0])
+		else:
+			break	
+
+
+		
+		
+	
 	if(len(interacting)==0):  # if interacting drugs of a protein has not sider
 		
 		cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
@@ -319,20 +326,20 @@ def viewusers(request):		#wrote a new function to not to get passwords
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
 def viewpapers(request):
-	cursor.execute("select T1.doi, T1.institution_name, T3.name from Article_Institution T1, Article_Author T2, User_Work T3 where T1.doi = T2.doi and T2.username=T3.username and T1.institution_name=T3.institution_name")
+	cursor.execute("select T1.doi, T3.name from Article_Institution T1, Article_Author T2, User_Work T3 where T1.doi = T2.doi and T2.username=T3.username and T1.institution_name=T3.institution_name")
 	tuples = cursor.fetchall()
-	columns = ["doi", "institution", "authors"]
+	columns = ["doi", "authors"]
 	articles = []
 	for tpl in tuples:
-		if (tpl[0],tpl[1]) not in articles:
-			articles.append((tpl[0],tpl[1]))
+		if (tpl[0]) not in articles:
+			articles.append(tpl[0])
 
 	dct = {article:[] for article in articles}
 
 	for tpl in tuples:
-		dct[(tpl[0],tpl[1])].append(tpl[2])
+		dct[tpl[0]].append(tpl[1])
 
-	tuples = [(k[0],k[1],v) for k,v in dct.items()]
+	tuples = [(k,v) for k,v in dct.items()]
 
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
