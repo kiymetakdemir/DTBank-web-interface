@@ -247,9 +247,28 @@ def filterdruginteractingtargets(request):
 	type = request.POST.get('type')
 	min = request.POST.get('min')
 	max = request.POST.get('max')
-	cursor.execute("CALL ProcedureUniprot('"+drugbank_id+"', '"+type+"',"+min+", "+max+" ); ")
+	cursor.execute("CALL StoredProcedure('"+type+"',"+min+", "+max+" ) ")
 	ts = cursor.fetchall()
-	interacting=[t[0] for t in ts]
+	#interacting=[t[0] for t in ts]
+	interacting=[]
+	for t in ts:
+		if(t[0]==drugbank_id):
+			interacting.append(t[1])
+
+	
+	"""cursor.execute("select uniprot_id from Reaction_Related where drugbank_id = '"+drugbank_id+"' ")
+	tp = cursor.fetchall()
+	#interactingpro=[t[0] for t in tp]
+	interacting=[]
+	for t1 in ts:
+		for t2 in tp:
+			if(t1[0]==t2[0]):
+				interacting.append(t1[0])
+				break"""
+				
+
+
+
 	names=[]
 	for prot in interacting:
 		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
