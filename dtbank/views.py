@@ -263,10 +263,14 @@ def saveuser(request):
 	name = request.POST.get('name')
 	institution = request.POST.get('institution')
 	password = request.POST.get('password')
-	encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database
-	insertion = "insert into User_Work values ('"+encoded+"','"+name+"','"+username+"','"+institution+"')"
-	cursor.execute(insertion)
-	return render(request,'managerhome.html', {'message':"User saved successfully!"})
+	cursor.execute("select institution_name from Institution")
+	institutions = [i[0] for i in cursor.fetchall()]
+	if institution not in institutions:
+		return render(request,'managerhome.html', {'message':"There is no such institution. Please try again!"})
+	else:
+		encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database
+		cursor.execute("insert into User_Work values ('"+username+"','"+name+"','"+institution+"','"+encoded+"')")
+		return render(request,'managerhome.html', {'message':"User saved successfully!"})
 
 def update_affinity(request):
 	reaction_id = request.POST.get('id')
@@ -350,14 +354,17 @@ def updateContributors(request):
 		institution = cursor.fetchall()[0][0]
 		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution})
 
-def addauthors(request, doi, reaction_id):
+def addauthors(request, reaction_id):
 	username = request.POST.get('username')
 	name = request.POST.get('name')
+	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
+	doi = cursor.fetchall()[0][0]
 	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
 	institution = cursor.fetchall()[0][0]
+	institution = institution.strip()
 	password = request.POST.get('password')
 	encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database 
-	cursor.execute("insert into User_Work values ('"+encoded+"','"+name+"','"+username+"','"+institution+"')")
+	cursor.execute("insert into User_Work values ('"+username+"','"+name+"','"+institution+"','"+encoded+"')")
 	cursor.execute("insert into Article_Author values ('"+doi+"','"+username+"')")
 	cursor.execute("select username from Article_Author where doi='"+doi+"'")
 	authors = cursor.fetchall()
@@ -365,9 +372,10 @@ def addauthors(request, doi, reaction_id):
 	institution = cursor.fetchall()[0][0]
 	return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author added successfully!"})
 
-def addUserAsAuthor(request, doi, reaction_id):
+def addUserAsAuthor(request, reaction_id):
 	username = request.POST.get('username')
-
+	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
+	doi = cursor.fetchall()[0][0]
 	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
 	institution = cursor.fetchall()[0][0]
 
@@ -386,7 +394,9 @@ def addUserAsAuthor(request, doi, reaction_id):
 	else:
 		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"There is no such user. Please add as a new user."})
 
-def removeauthor(request, doi, username, reaction_id):
+def removeauthor(request, username, reaction_id):
+	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
+	doi = cursor.fetchall()[0][0]
 	cursor.execute("select username from Article_Author where doi='"+doi+"'")
 	authors = cursor.fetchall()
 	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
