@@ -100,8 +100,8 @@
     {% csrf_token %}
       <p>Uniprot ID: <input type="text" name="id"/> </p>
       <p>Measurement Type: <input type="text" name="type"/> </p>
-      <p>Minimum Affinity: <input type="number" name="min"/> </p>
-      <p>Maximum Affinity: <input type="number" step=0.01 name="max"/> </p>
+      <p>Minimum Affinity: <input type="number" step=any name="min"/> </p>
+      <p>Maximum Affinity: <input type="number" step=any name="max"/> </p>
     </div>
 </div>
     <button type="submit" class="btn btn-primary" value="Update">Click to view</button>
