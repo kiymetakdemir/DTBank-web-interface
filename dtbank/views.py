@@ -124,15 +124,27 @@ def viewdruginteractions(request):
 	tuples = []
 	for i in range(len(interactions)):
 		tuples.append((interactions[i],names[i]))
+	
+	cursor.execute("select drugbank_id from Drug")
+	drugs1 = [i[0] for i in cursor.fetchall()]
+	if drugbank_id not in drugs1:
+		return render(request,'viewtable.html', {'message':"There is no such drug. Please try again!"})
+	
+	else:
 
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Drug id", "Drug name"]})
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Drug id", "Drug name"]})
 
 def viewSideEffects(request):
 	drugbank_id = request.POST.get('id')
 	cursor.execute("select side_effect_name, umls_cui from Sider_Has where drugbank_id = '"+drugbank_id+"'")
 	tuples = cursor.fetchall()
+	cursor.execute("select drugbank_id from Drug") # all drugs
+	drugs1 = [i[0] for i in cursor.fetchall()]
+	if drugbank_id not in drugs1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such drug. Please try again!"})
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
+	else:
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
 
 def viewdruginteractingtargets(request):
 	drugbank_id = request.POST.get('id')
@@ -147,8 +159,12 @@ def viewdruginteractingtargets(request):
 	tuples = []
 	for i in range(len(interacting)):
 		tuples.append((interacting[i],names[i]))
-	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
+	cursor.execute("select drugbank_id from Drug") # all drugs
+	drugs1 = [i[0] for i in cursor.fetchall()]
+	if drugbank_id not in drugs1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such drug. Please try again!"})
+	else:	
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
 
 def viewproteininteractings(request):
 	uniprot_id = request.POST.get('id')
@@ -164,8 +180,12 @@ def viewproteininteractings(request):
 	tuples = []
 	for i in range(len(interacting)):
 		tuples.append((interacting[i],names[i]))
-	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
+	cursor.execute("select uniprot_id from Uniprot") # all proteins
+	prots1 = [i[0] for i in cursor.fetchall()]
+	if uniprot_id not in prots1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such Protein. Please try again!"})
+	else:	
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
 
 def sameproteindrugs(request):
 	cursor.execute("select uniprot_id from Uniprot")
@@ -208,8 +228,12 @@ def viewdrugswithsider(request):
 	umls_cui = request.POST.get('id')
 	cursor.execute("select S.drugbank_id, D.drug_name from Sider_Has S, Drug D where umls_cui = '"+umls_cui+"' and S.drugbank_id=D.drugbank_id ")
 	tuples = cursor.fetchall()
-	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name"]} )
+	cursor.execute("select umls_cui from Sider_Has") # all siders
+	sider1 = [i[0] for i in cursor.fetchall()]
+	if umls_cui not in sider1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such side effect. Please try again!"})
+	else:	
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name"]} )
 
 def searchandviewdrugs(request):
 	keyword = request.POST.get('id')
@@ -252,7 +276,12 @@ def viewdrugsleastside(request):
 	for i in range(len(interacting)):
 		tuples.append((interacting[i],names[i]))
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
+	cursor.execute("select uniprot_id from Uniprot") # all proteins
+	prots1 = [i[0] for i in cursor.fetchall()]
+	if uniprot_id not in prots1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such Protein. Please try again!"})
+	else:	
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
 
 def filterdruginteractingtargets(request):
 	
@@ -277,7 +306,21 @@ def filterdruginteractingtargets(request):
 	for i in range(len(interacting)):
 		tuples.append((interacting[i],names[i]))
 	
-	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
+	cursor.execute("select drugbank_id from Drug") # all drugs
+	drugs1 = [i[0] for i in cursor.fetchall()]
+	cursor.execute("select measure from Reaction_Related") # all 
+	meas = [i[0] for i in cursor.fetchall()] 
+
+	if drugbank_id not in drugs1:  # If the input id is not from our database
+		return render(request,'viewtable.html', {'message':"There is no such drug. Please try again!"})
+	
+	elif type not in meas:
+		return render(request,'viewtable.html', {'message':"There is no such measurement type. Please try again!"})
+
+
+
+	else:
+		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
 
 
 #
