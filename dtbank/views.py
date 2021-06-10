@@ -14,15 +14,22 @@ cursor = connection.cursor()
 #   *** GENERAL
 #
 
+#redirects to login page
 def home(request):
 	return redirect('login')
 
+#Renders user login page which requests username, institution and password of the user.
 def userloginpage(request):
 	return render(request, 'login.html')
 
+#Renders database manager login page which requests username and password of the manager.
 def managerloginpage(request):
 	return render(request, 'managerlogin.html')
 
+"""
+Checks the info of user to login. Returns a message if there is no such user or password is incorrect.
+Renders user homepage if the password is correct.
+"""
 def login(request):
 	username = request.POST.get('username')	#check if username exists in database
 	institution = request.POST.get('institution')
@@ -41,6 +48,10 @@ def login(request):
 	else:
 		return render(request, 'login.html', {'message': "Invalid username or password!"})
 
+"""
+Checks the info of db manager to login. Returns a message if there is no such manager or password is incorrect.
+Renders manager homepage if the password is correct.
+"""
 def managerlogin(request):
 	username = request.POST.get('username')	#check if username exists in database
 	password = request.POST.get('password')
@@ -58,9 +69,17 @@ def managerlogin(request):
 	else:
 		return render(request, 'managerlogin.html', {'message': "Invalid username or password!"})
 
+"""
+Renders user homepage.
+This function is used facilitate already logged in user to return to homepage.
+"""
 def userhome(request, username):
 	return render(request, 'userhome.html')
 
+"""
+Renders database manager homepage.
+This function is used facilitate already logged in database manager to return to homepage.
+"""
 def managerhome(request):
 	return render(request, 'managerhome.html')
 	
@@ -217,18 +236,12 @@ def viewdrugsleastside(request):
 		else:
 			break	
 
-
-		
-		
-	
 	if(len(interacting)==0):  # if interacting drugs of a protein has not sider
 		
 		cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
 		ts = cursor.fetchall()
 		interacting=[t[0] for t in ts]
 
-			
-	
 	names=[]
 	for drug in interacting:
 		cursor.execute("select drug_name from Drug where drugbank_id='"+drug+"'")
@@ -270,6 +283,11 @@ def filterdruginteractingtargets(request):
 #
 #	*** Database Manager operations
 #
+
+"""
+Adds a new user to database with POST method. First checks if the institution exists or user already exists.
+Encrypts the password and saves to database.
+"""
 def saveuser(request):
 	username = request.POST.get('username')
 	name = request.POST.get('name')
@@ -277,37 +295,44 @@ def saveuser(request):
 	password = request.POST.get('password')
 	cursor.execute("select institution_name from Institution")
 	institutions = [i[0] for i in cursor.fetchall()]
-	if institution not in institutions:
-		return render(request,'managerhome.html', {'message':"There is no such institution. Please try again!"})
+	cursor.execute("select username, institution_name from User_Work")
+	tuples = cursor.fetchall()
+	if (username, institution) in tuples:
+		return render(request,'managerhome.html', {'message':"User already exists!"})		#if user already exists
+	elif institution not in institutions:
+		return render(request,'managerhome.html', {'message':"There is no such institution. Please try again!"})	#if institution not exists return an error message
 	else:
-		encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database
+		encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#else save the username, institution name and the encrypted to database
 		cursor.execute("insert into User_Work values ('"+username+"','"+name+"','"+institution+"','"+encoded+"')")
 		return render(request,'managerhome.html', {'message':"User saved successfully!"})
 
+
+#Updates affinity value of the given reaction id. First checks if the reaction with the given id exists.
 def update_affinity(request):
 	reaction_id = request.POST.get('id')
 	newvalue = request.POST.get('affinity')
-	cursor.execute("select * from Reaction_Related where reaction_id='"+reaction_id+"'")
+	cursor.execute("select * from Reaction_Related where reaction_id='"+reaction_id+"'")		#check if reaction exists
 	temp = cursor.fetchall()
 	if len(temp)==0:
 		return render(request, 'managerhome.html',{'message':"There is no reaction with the given reaction id. Please try again."})
 	else:
-		update = "update Reaction_Related set affinity_NM= '"+newvalue+"' where reaction_id= '"+reaction_id+"'"
+		update = "update Reaction_Related set affinity_NM= '"+newvalue+"' where reaction_id= '"+reaction_id+"'"		#if exists updates the affinity value
 		cursor.execute(update)
 		return render(request,'managerhome.html', {'message':"Affinity value updated successfully!"})
 
+#Deletes the drug with the given id. First checks if there is a drug with the given id.
 def delete_drug(request):
 	drugbank_id = request.POST.get('id')
-	cursor.execute("select * from Drug where drugbank_id= '"+drugbank_id+"'")
+	cursor.execute("select * from Drug where drugbank_id= '"+drugbank_id+"'")		#check if drug exists
 	temp = cursor.fetchall()
 	if len(temp)==0:
 		return render(request, 'managerhome.html', {'message':"There is no drug with the given id. Please try again."})
 	else:
-		deletion = "delete from Drug where drugbank_id= '"+drugbank_id+"'"
+		deletion = "delete from Drug where drugbank_id= '"+drugbank_id+"'"			#if exists delete
 		cursor.execute(deletion)
 		return render(request,'managerhome.html', {'message':"Drug deleted successfully!"})
 
-
+#Deletes the protein with the given id. First checks if there is a protein with the given id.
 def delete_protein(request):
 	uniprot_id = request.POST.get('id')
 	cursor.execute("select * from UniProt where uniprot_id= '"+uniprot_id+"'")
@@ -319,6 +344,7 @@ def delete_protein(request):
 		cursor.execute(deletion)
 		return render(request,'managerhome.html', {'message':"Protein deleted successfully!"})
 
+# Takes tablename as parameter. Fetches its columns and entries. Sends to view table html file.
 def viewtable(request, tablename):
 	query = "select * from "+tablename
 	cursor.execute(query)
@@ -328,30 +354,33 @@ def viewtable(request, tablename):
 	columns = [col for (col,) in columns]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
-def viewusers(request):		#wrote a new function to not to get passwords
+#Fetching entries in User_Work table without passwords sends to view table html file.
+def viewusers(request):	
 	cursor.execute("select name, username, institution_name from User_Work")
 	tuples = cursor.fetchall()
-	columns = ["name", "username", "institution"]
+	columns = ["name", "username", "institution"]		#arrrange column names
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
+#Joining 3 tables, gets the doi, institution, authors. Sends to viewtable html to view papers.
 def viewpapers(request):
 	cursor.execute("select T1.doi, T3.name from Article_Institution T1, Article_Author T2, User_Work T3 where T1.doi = T2.doi and T2.username=T3.username and T1.institution_name=T3.institution_name")
 	tuples = cursor.fetchall()
 	columns = ["doi", "authors"]
 	articles = []
-	for tpl in tuples:
-		if (tpl[0]) not in articles:
+	for tpl in tuples:								#create a dict whichs keys are articles
+		if tpl[0] not in articles:
 			articles.append(tpl[0])
 
-	dct = {article:[] for article in articles}
+	dct = {article:[] for article in articles}		#value of each key is empty list
 
-	for tpl in tuples:
+	for tpl in tuples:								#add each author to its article list
 		dct[tpl[0]].append(tpl[1])
 
-	tuples = [(k,v) for k,v in dct.items()]
+	tuples = [(k,v) for k,v in dct.items()]			#convert dict to tuple
 
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
+# Checks the given reaction id, returns a page with author info of the reaction.
 def updateContributors(request):
 	reaction_id = request.POST.get("reaction_id")
 	cursor.execute("select doi from Reaction_Related where reaction_id= '"+reaction_id+"'")
@@ -366,24 +395,24 @@ def updateContributors(request):
 		institution = cursor.fetchall()[0][0]
 		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution})
 
+# To add a new user as author, first saves it to User_Work table. Then saves to Article_Author to add as author of the article of given reaction.
 def addauthors(request, reaction_id):
 	username = request.POST.get('username')
 	name = request.POST.get('name')
-	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
+	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")		#get doi of the reaction
 	doi = cursor.fetchall()[0][0]
-	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
+	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")		#get institution of the doi
 	institution = cursor.fetchall()[0][0]
-	institution = institution.strip()
+	institution = institution()
 	password = request.POST.get('password')
 	encoded = hasher.make_password(password, hasher='pbkdf2_sha256')		#save the username, institution name and the encrypted to database 
 	cursor.execute("insert into User_Work values ('"+username+"','"+name+"','"+institution+"','"+encoded+"')")
-	cursor.execute("insert into Article_Author values ('"+doi+"','"+username+"')")
-	cursor.execute("select username from Article_Author where doi='"+doi+"'")
+	cursor.execute("insert into Article_Author values ('"+doi+"','"+username+"')")		#save as author
+	cursor.execute("select username from Article_Author where doi='"+doi+"'")			#update the authors in the html page
 	authors = cursor.fetchall()
-	cursor.execute("select institution_name from Article_Institution where doi='"+doi+"'")
-	institution = cursor.fetchall()[0][0]
 	return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author added successfully!"})
 
+# Adds user as author that already exists in the database. First checks if user exists in database.
 def addUserAsAuthor(request, reaction_id):
 	username = request.POST.get('username')
 	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
@@ -397,7 +426,7 @@ def addUserAsAuthor(request, reaction_id):
 	cursor.execute("select * from User_Work where institution_name='"+institution+"' and username='"+username+"'")
 	check = cursor.fetchall()
 
-	if len(check)>0:
+	if len(check)>0:			#check if user exists in the database
 		insertion = "insert into Article_Author values ('"+doi+"','"+username+"')"
 		cursor.execute(insertion)
 		cursor.execute("select username from Article_Author where doi='"+doi+"'")
@@ -406,6 +435,7 @@ def addUserAsAuthor(request, reaction_id):
 	else:
 		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"There is no such user. Please add as a new user."})
 
+#removes author with the given username from article with the given reaction id
 def removeauthor(request, username, reaction_id):
 	cursor.execute("select doi from Reaction_Related where reaction_id='"+reaction_id+"'")
 	doi = cursor.fetchall()[0][0]
@@ -423,7 +453,11 @@ def removeauthor(request, username, reaction_id):
 		authors = cursor.fetchall()
 		return render(request, 'updatecontributors.html', {'reaction_id':reaction_id, 'doi':doi, 'authors':authors, 'institution':institution, 'message':"Author removed successfully!"})
 
-
+"""
+path: "encrypt/"
+It is executed after loading data into databse. It encrypts the passwords in the database. It should not be executed in the later steps to not encrypt twice.
+Passwords of users added by database managers are encrypted in their own function.
+"""
 def encrypt_passwords(request):
 			#encode database manager passwords
 	cursor.execute("select username, password from Database_Manager")
@@ -443,15 +477,4 @@ def encrypt_passwords(request):
 		cursor.execute(query)
 
 	return redirect('login')
-
-#
-#
-#
-
-
-
-
-
-
-
 
