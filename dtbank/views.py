@@ -86,6 +86,11 @@ def managerhome(request):
 #
 #	*** User Operations
 #
+""" Requirements 8:  We selected all values related with this requirement from tables then render these values to viewtable. 
+
+"""
+
+
 def viewDrugInfo(request):
 	cursor.execute("select drugbank_id, drug_name, smiles, description from Drug")
 	drugs = cursor.fetchall()
@@ -108,7 +113,10 @@ def viewDrugInfo(request):
 	tuples = [(k[0],k[1], k[2], k[3], v[0], v[1]) for k,v in dct.items()]
 
 	return render(request, "viewtable.html", {'tuples':tuples, 'columns':columns})
+""" Requirements 9: User enter a drugbank_id and we select all drugs from interaction_with table. Than we select names of these drugs
+	from the Drug table. We check if the given id is valid or not. If it is valid render the values to viewtable
 
+"""
 
 def viewdruginteractions(request):
 	drugbank_id = request.POST.get('id')
@@ -134,6 +142,10 @@ def viewdruginteractions(request):
 
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Drug id", "Drug name"]})
 
+"""User enters a drugbank_id and we select all side effect names and umls_cui from table and render these value to 
+view table.
+
+"""
 def viewSideEffects(request):
 	drugbank_id = request.POST.get('id')
 	cursor.execute("select side_effect_name, umls_cui from Sider_Has where drugbank_id = '"+drugbank_id+"'")
@@ -146,6 +158,10 @@ def viewSideEffects(request):
 	else:
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Side Effect Name", "UMLS CUI"]} )
 
+""" User enters a drugbank_id and we select all proteins and their names from tables and render these values to view table.
+
+
+"""
 def viewdruginteractingtargets(request):
 	drugbank_id = request.POST.get('id')
 	cursor.execute("select uniprot_id from Reaction_Related where drugbank_id = '"+drugbank_id+"' ")
@@ -166,6 +182,8 @@ def viewdruginteractingtargets(request):
 	else:	
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Uniprot ID","Target Name"]} )
 
+""" Unser enters a protein and we select all drugs interacting with this protein and their names from table and render it to view table
+"""
 def viewproteininteractings(request):
 	uniprot_id = request.POST.get('id')
 	cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
@@ -187,6 +205,10 @@ def viewproteininteractings(request):
 	else:	
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
 
+
+""" firts we select all proteins from table. Then we select drugs interacitong with same protein. Then assigne these drugs as dictionary value and 
+realated proteins as dictionary keys. Then render these values to view table.
+"""	
 def sameproteindrugs(request):
 	cursor.execute("select uniprot_id from Uniprot")
 	prots= cursor.fetchall()
@@ -205,6 +227,10 @@ def sameproteindrugs(request):
 	tuples = [(k,v) for k,v in dct.items()]
 	columns = ["Uniprot ID","Drugs That Affect"]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
+"""
+We did same procedure with above funciton for drugs
+"""
+
 def samedrugproteins(request):
 	cursor.execute("select drugbank_id from Drug")
 	drugs= cursor.fetchall()
@@ -224,6 +250,9 @@ def samedrugproteins(request):
 	columns = ["DrugBank ID","Proteins That Bind"]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})	
 
+"""User enters a sider and we select all drugs that has this sider and their names. Then render them to view table
+
+"""
 def viewdrugswithsider(request):
 	umls_cui = request.POST.get('id')
 	cursor.execute("select S.drugbank_id, D.drug_name from Sider_Has S, Drug D where umls_cui = '"+umls_cui+"' and S.drugbank_id=D.drugbank_id ")
@@ -235,12 +264,19 @@ def viewdrugswithsider(request):
 	else:	
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name"]} )
 
+"""
+User enters a keyword and we select drugs that includes these keywords in their discriptions. Then render them to view table
+"""
+
 def searchandviewdrugs(request):
 	keyword = request.POST.get('id')
 	cursor.execute("select drugbank_id, drug_name, description from Drug where description like CONCAT('%', '"+keyword+"', '%');")
 	tuples = cursor.fetchall()
 	
 	return render(request,"viewtable.html", {'tuples':tuples, 'columns':["DrugBank ID", "Drug Name", "Description"]} )	
+
+"We select institutions order them by score in descending order"		
+
 def rankinstitutes(request):
 	cursor.execute("select institution_name, score from Institution order by score desc")
 	tuples= cursor.fetchall()
@@ -248,6 +284,10 @@ def rankinstitutes(request):
 	columns = ["Institute","Score"]
 	return render(request, 'viewtable.html', {'tuples':tuples, 'columns': columns})
 
+""" User enters a proteins then we select the drugs interacting with this protein and their count of side affects.
+	Then we order these values count of side effects in ascending order. Then we check is there a drug with count value equals to first drug
+	because the first one has least sider. Then find thse drugs' names and render them to view table.
+"""
 def viewdrugsleastside(request):
 	uniprot_id = request.POST.get('id')
 	cursor.execute("select R.drugbank_id, count(S.umls_cui) from Reaction_Related R , Sider_Has S where R.uniprot_id = '"+uniprot_id+"'and R.drugbank_id =S.drugbank_id  group by S.drugbank_id order by count(S.umls_cui) asc")
@@ -260,11 +300,6 @@ def viewdrugsleastside(request):
 		else:
 			break	
 
-	if(len(interacting)==0):  # if interacting drugs of a protein has not sider
-		
-		cursor.execute("select drugbank_id  from Reaction_Related where uniprot_id = '"+uniprot_id+"'")
-		ts = cursor.fetchall()
-		interacting=[t[0] for t in ts]
 
 	names=[]
 	for drug in interacting:
@@ -283,6 +318,11 @@ def viewdrugsleastside(request):
 	else:	
 		return render(request,"viewtable.html", {'tuples':tuples, 'columns':["Interacting Drugs", "Drug Name"]} )
 
+
+"""
+We have a stored procedure with 3 paramaters that finds all drugs with these restrictions and their interacting proteins.
+Then we just select wanted drugs amoung these drugs and find their interacting target name. Then we render them to view.  
+"""
 def filterdruginteractingtargets(request):
 	
 	drugbank_id = request.POST.get('id')
