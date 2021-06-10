@@ -255,20 +255,6 @@ def filterdruginteractingtargets(request):
 		if(t[0]==drugbank_id):
 			interacting.append(t[1])
 
-	
-	"""cursor.execute("select uniprot_id from Reaction_Related where drugbank_id = '"+drugbank_id+"' ")
-	tp = cursor.fetchall()
-	#interactingpro=[t[0] for t in tp]
-	interacting=[]
-	for t1 in ts:
-		for t2 in tp:
-			if(t1[0]==t2[0]):
-				interacting.append(t1[0])
-				break"""
-				
-
-
-
 	names=[]
 	for prot in interacting:
 		cursor.execute("select target_name from Uniprot where uniprot_id='"+prot+"'")
